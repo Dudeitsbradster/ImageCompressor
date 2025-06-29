@@ -5,10 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { compressImage } from "@/lib/image-compression";
 import { formatFileSize, downloadFile } from "@/lib/file-utils";
-import { Combine, Trash2, Download, X, ImageIcon, Zap, Users } from "lucide-react";
+import { Combine, Trash2, Download, X, ImageIcon, Zap, Users, Eye, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { batchProcessor } from "@/lib/batch-processor";
+import { QualityAssessment } from "@/lib/quality-assessment";
+import QualityAssessmentPanel from "@/components/quality-assessment-panel";
 
 // Image Preview Component with error handling
 function ImagePreview({ file }: { file: ImageFile }) {
@@ -65,6 +67,7 @@ export default function FilePreview({
   onClearAll 
 }: FilePreviewProps) {
   const { toast } = useToast();
+  const [selectedFileForAssessment, setSelectedFileForAssessment] = useState<ImageFile | null>(null);
 
   const handleCompressFile = async (file: ImageFile) => {
     try {
@@ -81,13 +84,38 @@ export default function FilePreview({
       const savings = file.originalSize - result.size;
       const savingsPercentage = Math.round((savings / file.originalSize) * 100);
 
+      // Calculate quality metrics for compressed image
+      let qualityScore = 0;
+      let qualityGrade: ImageFile['qualityGrade'] = 'Fair';
+      let psnr = 0;
+      let ssim = 0;
+
+      try {
+        const qualityMetrics = await QualityAssessment.analyzeImageQuality(file.file, result.blob);
+        qualityScore = qualityMetrics.overallQuality;
+        psnr = qualityMetrics.psnr;
+        ssim = qualityMetrics.ssim;
+        
+        if (qualityScore >= 90) qualityGrade = 'Excellent';
+        else if (qualityScore >= 80) qualityGrade = 'Very Good';
+        else if (qualityScore >= 70) qualityGrade = 'Good';
+        else if (qualityScore >= 60) qualityGrade = 'Fair';
+        else qualityGrade = 'Poor';
+      } catch (error) {
+        console.warn('Quality assessment failed:', error);
+      }
+
       onUpdateFile(file.id, {
         status: 'compressed',
         compressedSize: result.size,
         compressedBlob: result.blob,
         savings,
         savingsPercentage,
-        progress: 100
+        progress: 100,
+        qualityScore,
+        qualityGrade,
+        psnr,
+        ssim
       });
 
       toast({
@@ -232,6 +260,33 @@ export default function FilePreview({
                 </div>
               </div>
 
+              {/* Quality Assessment */}
+              {file.status === 'compressed' && file.qualityScore && (
+                <div className="mt-3 p-3 bg-slate-50 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-slate-600">Quality Assessment</span>
+                    <div className="flex items-center space-x-2">
+                      <Badge 
+                        className={
+                          file.qualityGrade === 'Excellent' ? 'bg-green-100 text-green-800' :
+                          file.qualityGrade === 'Very Good' ? 'bg-blue-100 text-blue-800' :
+                          file.qualityGrade === 'Good' ? 'bg-yellow-100 text-yellow-800' :
+                          file.qualityGrade === 'Fair' ? 'bg-orange-100 text-orange-800' :
+                          'bg-red-100 text-red-800'
+                        }
+                      >
+                        {file.qualityGrade}
+                      </Badge>
+                      <span className="text-sm font-medium text-slate-700">{file.qualityScore}%</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs text-slate-600">
+                    <div>PSNR: {file.psnr?.toFixed(1)} dB</div>
+                    <div>SSIM: {file.ssim?.toFixed(3)}</div>
+                  </div>
+                </div>
+              )}
+
               {/* Progress Bar */}
               {file.status === 'compressing' && (
                 <div className="mt-3">
@@ -268,21 +323,40 @@ export default function FilePreview({
                 </Button>
 
                 {file.status === 'compressed' && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDownloadFile(file)}
-                    className="text-green-600 hover:text-green-700"
-                  >
-                    <Download className="w-4 h-4 mr-1" />
-                    Download
-                  </Button>
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDownloadFile(file)}
+                      className="text-green-600 hover:text-green-700"
+                    >
+                      <Download className="w-4 h-4 mr-1" />
+                      Download
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedFileForAssessment(file)}
+                      className="text-blue-600 hover:text-blue-700"
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      Analyze Quality
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
           </div>
         </Card>
       ))}
+
+      {/* Quality Assessment Panel */}
+      {selectedFileForAssessment && (
+        <QualityAssessmentPanel
+          file={selectedFileForAssessment}
+          onClose={() => setSelectedFileForAssessment(null)}
+        />
+      )}
     </div>
   );
 }

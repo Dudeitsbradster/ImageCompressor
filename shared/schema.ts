@@ -31,6 +31,10 @@ export interface ImageFile {
   progress: number;
   savings?: number;
   savingsPercentage?: number;
+  qualityScore?: number;
+  qualityGrade?: 'Excellent' | 'Very Good' | 'Good' | 'Fair' | 'Poor';
+  psnr?: number;
+  ssim?: number;
 }
 
 export interface CompressionSettings {
