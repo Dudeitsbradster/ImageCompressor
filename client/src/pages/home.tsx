@@ -1,7 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-import { User, Shield, Zap, Wand2, LogOut } from 'lucide-react';
+import { User, Shield, Zap, Wand2, LogOut, Crown, Star } from 'lucide-react';
+import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import UploadZone from '@/components/upload-zone';
@@ -27,9 +29,30 @@ export default function Home() {
   });
   const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(null);
 
+  // Fetch subscription status
+  const { data: subscriptionStatus } = useQuery({
+    queryKey: ['/api/subscription/status'],
+    enabled: !!user,
+  });
+
+  const isPremium = (subscriptionStatus as any)?.tier === 'premium' && (subscriptionStatus as any)?.status === 'active';
+  const dailyCompressionLimit = isPremium ? -1 : 10;
+
   const addFiles = useCallback((newFiles: ImageFile[]) => {
+    const currentCompressed = files.filter(file => file.status === 'compressed').length;
+    
+    // Check usage limits for free users
+    if (!isPremium && currentCompressed >= dailyCompressionLimit) {
+      toast({
+        title: "Usage Limit Reached",
+        description: "Upgrade to Premium for unlimited compressions.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setFiles(prev => [...prev, ...newFiles]);
-  }, []);
+  }, [files, isPremium, dailyCompressionLimit, toast]);
 
   const updateFile = useCallback((id: string, updates: Partial<ImageFile>) => {
     setFiles(prev => prev.map(file => 
@@ -47,9 +70,9 @@ export default function Home() {
   }, []);
 
   const compressedFiles = files.filter(file => file.status === 'compressed');
-  const totalSavings = compressedFiles.reduce((sum, file) => sum + (file.savings || 0), 0);
+  const totalSavings = compressedFiles.reduce((sum: number, file: ImageFile) => sum + (file.savings || 0), 0);
   const totalSavingsPercentage = compressedFiles.length > 0 
-    ? Math.round(compressedFiles.reduce((sum, file) => sum + (file.savingsPercentage || 0), 0) / compressedFiles.length)
+    ? Math.round(compressedFiles.reduce((sum: number, file: ImageFile) => sum + (file.savingsPercentage || 0), 0) / compressedFiles.length)
     : 0;
 
   const handleLogout = () => {
@@ -84,10 +107,25 @@ export default function Home() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="hidden sm:block">
-                  <div className="text-sm font-medium text-slate-900">Welcome back!</div>
-                  <div className="text-xs text-slate-500">Ready to compress images</div>
+                  <div className="text-sm font-medium text-slate-900 flex items-center">
+                    Welcome back!
+                    {isPremium && <Crown className="w-4 h-4 ml-1 text-yellow-500" />}
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    {isPremium ? 'Premium Member - Unlimited' : `${dailyCompressionLimit - compressedFiles.length} compressions left today`}
+                  </div>
                 </div>
               </div>
+              
+              {!isPremium && (
+                <Link href="/subscription">
+                  <Button size="sm" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                    <Star className="w-4 h-4 mr-1" />
+                    Upgrade
+                  </Button>
+                </Link>
+              )}
+              
               <Button
                 variant="ghost"
                 size="sm"
@@ -211,6 +249,46 @@ export default function Home() {
           <div className="lg:w-80">
             <div className="sticky top-8 space-y-6">
               <AdSidebar slot="6666666666" />
+              
+              {/* Usage Limit Card */}
+              <div className={`rounded-lg p-6 shadow-sm border ${isPremium ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200' : 'bg-white border-slate-200'}`}>
+                {isPremium ? (
+                  <div className="text-center">
+                    <Crown className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
+                    <h3 className="text-lg font-semibold text-yellow-800 mb-2">Premium Active</h3>
+                    <p className="text-yellow-700 text-sm mb-4">Unlimited compressions</p>
+                    <Link href="/subscription">
+                      <Button variant="outline" size="sm" className="w-full border-yellow-300 text-yellow-700 hover:bg-yellow-100">
+                        Manage Subscription
+                      </Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Zap className="w-6 h-6 text-slate-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-900 mb-2">Usage Today</h3>
+                    <div className="mb-4">
+                      <div className="text-2xl font-bold text-slate-900">
+                        {compressedFiles.length}/{dailyCompressionLimit}
+                      </div>
+                      <div className="w-full bg-slate-200 rounded-full h-2 mt-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full" 
+                          style={{ width: `${(compressedFiles.length / dailyCompressionLimit) * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    <Link href="/subscription">
+                      <Button size="sm" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                        <Crown className="w-4 h-4 mr-1" />
+                        Upgrade to Premium
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </div>
               
               <div className="bg-white rounded-lg p-6 shadow-sm border">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Why Choose Our Compressor?</h3>

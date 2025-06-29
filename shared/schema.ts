@@ -28,6 +28,11 @@ export const users = pgTable("users", {
   password: varchar("password", { length: 255 }).notNull(),
   firstName: varchar("first_name", { length: 100 }),
   lastName: varchar("last_name", { length: 100 }),
+  stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
+  stripeSubscriptionId: varchar("stripe_subscription_id", { length: 255 }),
+  subscriptionStatus: varchar("subscription_status", { length: 50 }).default("free"),
+  subscriptionTier: varchar("subscription_tier", { length: 50 }).default("free"),
+  subscriptionEndsAt: timestamp("subscription_ends_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -81,3 +86,75 @@ export interface CompressionSettings {
   sharpenFilter?: boolean;
   noiseReduction?: boolean;
 }
+
+export interface BatchProgress {
+  total: number;
+  completed: number;
+  failed: number;
+  processing: number;
+  pending: number;
+  paused: number;
+  estimatedTimeRemaining: number;
+  averageProcessingTime: number;
+  totalSavings: number;
+  totalSavingsPercentage: number;
+}
+
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  price: number;
+  interval: 'month' | 'year';
+  stripePriceId: string;
+  features: string[];
+  compressionLimit: number; // -1 for unlimited
+  isPopular?: boolean;
+}
+
+export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
+  {
+    id: 'free',
+    name: 'Free',
+    price: 0,
+    interval: 'month',
+    stripePriceId: '',
+    features: [
+      'Up to 10 compressions per day',
+      'Basic compression modes',
+      'Standard quality assessment'
+    ],
+    compressionLimit: 10
+  },
+  {
+    id: 'premium',
+    name: 'Premium',
+    price: 9.99,
+    interval: 'month',
+    stripePriceId: 'price_premium_monthly', // Will be replaced with actual Stripe price ID
+    features: [
+      'Unlimited compressions',
+      'Advanced compression modes',
+      'Professional quality assessment',
+      'Batch processing',
+      'Priority support'
+    ],
+    compressionLimit: -1,
+    isPopular: true
+  },
+  {
+    id: 'premium_yearly',
+    name: 'Premium Yearly',
+    price: 99.99,
+    interval: 'year',
+    stripePriceId: 'price_premium_yearly', // Will be replaced with actual Stripe price ID
+    features: [
+      'Unlimited compressions',
+      'Advanced compression modes',
+      'Professional quality assessment',
+      'Batch processing',
+      'Priority support',
+      '2 months free'
+    ],
+    compressionLimit: -1
+  }
+];

@@ -3,7 +3,16 @@ import { createServer, type Server } from "http";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
-import { loginUserSchema, registerUserSchema } from "@shared/schema";
+import { loginUserSchema, registerUserSchema, SUBSCRIPTION_PLANS } from "@shared/schema";
+import Stripe from "stripe";
+
+// Initialize Stripe
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: "2025-05-28.basil",
+});
 
 // Session middleware
 function setupSession(app: Express) {
@@ -133,6 +142,151 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json({ message: "Logged out successfully" });
     });
+  });
+
+  // Stripe subscription routes
+  app.get('/api/subscription/plans', (req, res) => {
+    res.json(SUBSCRIPTION_PLANS);
+  });
+
+  app.post('/api/subscription/create', requireAuth, async (req: any, res) => {
+    try {
+      const { planId } = req.body;
+      const user = await storage.getUser(req.session.userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const plan = SUBSCRIPTION_PLANS.find(p => p.id === planId);
+      if (!plan || plan.id === 'free') {
+        return res.status(400).json({ message: "Invalid plan" });
+      }
+
+      // Create or get Stripe customer
+      let stripeCustomerId = user.stripeCustomerId;
+      if (!stripeCustomerId) {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        });
+        stripeCustomerId = customer.id;
+        await storage.updateUserStripeInfo(user.id, stripeCustomerId);
+      }
+
+      // Create subscription
+      const subscription = await stripe.subscriptions.create({
+        customer: stripeCustomerId,
+        items: [{
+          price: plan.stripePriceId,
+        }],
+        payment_behavior: 'default_incomplete',
+        expand: ['latest_invoice.payment_intent'],
+      });
+
+      await storage.updateUserStripeInfo(user.id, stripeCustomerId, subscription.id);
+
+      res.json({
+        subscriptionId: subscription.id,
+        clientSecret: subscription.latest_invoice?.payment_intent?.client_secret,
+      });
+    } catch (error: any) {
+      console.error("Subscription creation error:", error);
+      res.status(500).json({ message: "Failed to create subscription" });
+    }
+  });
+
+  app.post('/api/subscription/cancel', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId);
+      
+      if (!user || !user.stripeSubscriptionId) {
+        return res.status(404).json({ message: "No active subscription found" });
+      }
+
+      await stripe.subscriptions.cancel(user.stripeSubscriptionId);
+      await storage.updateUserSubscription(user.id, 'canceled', 'free');
+
+      res.json({ message: "Subscription canceled successfully" });
+    } catch (error: any) {
+      console.error("Subscription cancellation error:", error);
+      res.status(500).json({ message: "Failed to cancel subscription" });
+    }
+  });
+
+  app.get('/api/subscription/status', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      let subscriptionData = {
+        status: user.subscriptionStatus || 'free',
+        tier: user.subscriptionTier || 'free',
+        endsAt: user.subscriptionEndsAt,
+      };
+
+      // If user has a Stripe subscription, get fresh data
+      if (user.stripeSubscriptionId) {
+        try {
+          const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+          subscriptionData = {
+            status: subscription.status,
+            tier: subscription.status === 'active' ? 'premium' : 'free',
+            endsAt: subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null,
+          };
+          
+          // Update local database with fresh data
+          await storage.updateUserSubscription(
+            user.id, 
+            subscription.status, 
+            subscription.status === 'active' ? 'premium' : 'free',
+            subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : undefined
+          );
+        } catch (stripeError) {
+          console.error("Error fetching Stripe subscription:", stripeError);
+        }
+      }
+
+      res.json(subscriptionData);
+    } catch (error: any) {
+      console.error("Error fetching subscription status:", error);
+      res.status(500).json({ message: "Failed to fetch subscription status" });
+    }
+  });
+
+  // Stripe webhook endpoint
+  app.post('/api/webhook/stripe', async (req, res) => {
+    try {
+      const event = req.body;
+
+      switch (event.type) {
+        case 'customer.subscription.updated':
+        case 'customer.subscription.deleted':
+          const subscription = event.data.object;
+          const customer = await stripe.customers.retrieve(subscription.customer);
+          
+          if (customer && !customer.deleted) {
+            const user = await storage.getUserByEmail(customer.email);
+            if (user) {
+              await storage.updateUserSubscription(
+                user.id,
+                subscription.status,
+                subscription.status === 'active' ? 'premium' : 'free',
+                subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : undefined
+              );
+            }
+          }
+          break;
+      }
+
+      res.json({ received: true });
+    } catch (error: any) {
+      console.error("Webhook error:", error);
+      res.status(400).json({ message: "Webhook error" });
+    }
   });
 
   const httpServer = createServer(app);

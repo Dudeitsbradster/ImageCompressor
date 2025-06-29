@@ -86,9 +86,18 @@ The application follows a monorepo structure with clear separation between clien
 
 ```
 Changelog:
-- June 29, 2025: User authentication system implemented with Replit Auth
+- June 29, 2025: Stripe subscription system implemented for premium features
+  * Complete Stripe integration with subscription management
+  * Premium plan offering unlimited compressions ($9.99/month, $99.99/year)
+  * Usage limits for free users (10 compressions per day)
+  * Real-time subscription status monitoring and updates
+  * Secure payment processing with Stripe Elements
+  * Premium member UI indicators with crown badges
+  * Usage tracking and limit enforcement
+  * Subscription cancellation and management features
+- June 29, 2025: User authentication system implemented with custom auth
   * Clean landing page with minimalist design and clear call-to-action
-  * Secure user authentication using OpenID Connect
+  * Secure user authentication using bcrypt password hashing
   * PostgreSQL database integration for user sessions and data
   * User profile display with avatar and account information
   * Protected routes and secure logout functionality
