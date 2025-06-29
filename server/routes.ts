@@ -186,9 +186,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.updateUserStripeInfo(user.id, stripeCustomerId, subscription.id);
 
+      const latestInvoice = subscription.latest_invoice as any;
       res.json({
         subscriptionId: subscription.id,
-        clientSecret: subscription.latest_invoice?.payment_intent?.client_secret,
+        clientSecret: latestInvoice?.payment_intent?.client_secret,
       });
     } catch (error: any) {
       console.error("Subscription creation error:", error);
@@ -232,10 +233,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.stripeSubscriptionId) {
         try {
           const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+          const currentPeriodEnd = (subscription as any).current_period_end;
           subscriptionData = {
             status: subscription.status,
             tier: subscription.status === 'active' ? 'premium' : 'free',
-            endsAt: subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null,
+            endsAt: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : null,
           };
           
           // Update local database with fresh data
@@ -243,7 +245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             user.id, 
             subscription.status, 
             subscription.status === 'active' ? 'premium' : 'free',
-            subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : undefined
+            currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : undefined
           );
         } catch (stripeError) {
           console.error("Error fetching Stripe subscription:", stripeError);
@@ -266,9 +268,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         case 'customer.subscription.updated':
         case 'customer.subscription.deleted':
           const subscription = event.data.object;
-          const customer = await stripe.customers.retrieve(subscription.customer);
+          const customer = await stripe.customers.retrieve(subscription.customer as string);
           
-          if (customer && !customer.deleted) {
+          if (customer && !customer.deleted && customer.email) {
             const user = await storage.getUserByEmail(customer.email);
             if (user) {
               await storage.updateUserSubscription(

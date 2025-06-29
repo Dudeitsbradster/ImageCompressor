@@ -100,16 +100,6 @@ export default function Subscription() {
   const { data: subscriptionStatus, isLoading: statusLoading } = useQuery({
     queryKey: ['/api/subscription/status'],
     enabled: isAuthenticated,
-    onError: (error: Error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Session Expired",
-          description: "Please log in again.",
-          variant: "destructive",
-        });
-        window.location.href = "/login";
-      }
-    },
   });
 
   // Create subscription mutation
@@ -210,7 +200,7 @@ export default function Subscription() {
     return null; // Will redirect to login
   }
 
-  const isPremium = subscriptionStatus?.tier === 'premium' && subscriptionStatus?.status === 'active';
+  const isPremium = (subscriptionStatus as any)?.tier === 'premium' && (subscriptionStatus as any)?.status === 'active';
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -238,9 +228,9 @@ export default function Subscription() {
               </CardTitle>
               <CardDescription className="text-yellow-700">
                 You have unlimited access to all compression features.
-                {subscriptionStatus?.endsAt && (
+                {(subscriptionStatus as any)?.endsAt && (
                   <span className="block mt-1">
-                    Renews on {new Date(subscriptionStatus.endsAt).toLocaleDateString()}
+                    Renews on {new Date((subscriptionStatus as any).endsAt).toLocaleDateString()}
                   </span>
                 )}
               </CardDescription>
@@ -276,7 +266,7 @@ export default function Subscription() {
 
         {/* Pricing Plans */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {plans.map((plan: SubscriptionPlan) => (
+          {(plans as SubscriptionPlan[])?.map((plan: SubscriptionPlan) => (
             <Card 
               key={plan.id} 
               className={`relative ${plan.isPopular ? 'border-blue-500 shadow-lg scale-105' : ''}`}
@@ -324,7 +314,7 @@ export default function Subscription() {
                     className="w-full" 
                     disabled
                   >
-                    {subscriptionStatus?.tier === 'premium' ? 'Active' : 'Upgrade to Premium'}
+                    {(subscriptionStatus as any)?.tier === 'premium' ? 'Active' : 'Upgrade to Premium'}
                   </Button>
                 ) : (
                   <Button 

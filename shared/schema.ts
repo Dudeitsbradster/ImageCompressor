@@ -3,7 +3,7 @@ import {
   text,
   varchar,
   timestamp,
-  serial,
+  integer,
   jsonb,
   index,
 } from "drizzle-orm/pg-core";
@@ -23,7 +23,7 @@ export const sessions = pgTable(
 
 // User storage table for custom authentication
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
+  id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   password: varchar("password", { length: 255 }).notNull(),
   firstName: varchar("first_name", { length: 100 }),
@@ -42,6 +42,11 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
   firstName: true,
   lastName: true,
+  stripeCustomerId: true,
+  stripeSubscriptionId: true,
+  subscriptionStatus: true,
+  subscriptionTier: true,
+  subscriptionEndsAt: true,
 });
 
 export const loginUserSchema = z.object({

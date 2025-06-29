@@ -38,8 +38,12 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db
       .insert(users)
       .values({
-        ...userData,
+        email: userData.email,
         password: hashedPassword,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        subscriptionStatus: 'free',
+        subscriptionTier: 'free',
       })
       .returning();
     return user;
