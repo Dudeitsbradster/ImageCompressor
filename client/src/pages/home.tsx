@@ -5,10 +5,14 @@ import CompressionSettingsComponent from "@/components/compression-settings";
 import FilePreview from "@/components/file-preview";
 import BulkActions from "@/components/bulk-actions";
 import BatchQueue from "@/components/batch-queue";
-import { Combine, Shield, Zap, Wand2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/hooks/useAuth";
+import { Combine, Shield, Zap, Wand2, LogOut, User } from "lucide-react";
 import { BatchProgress } from "@/lib/batch-processor";
 
 export default function Home() {
+  const { user } = useAuth();
   const [files, setFiles] = useState<ImageFile[]>([]);
   const [settings, setSettings] = useState<CompressionSettings>({
     quality: 80,
@@ -55,8 +59,33 @@ export default function Home() {
               </div>
               <h1 className="text-xl font-semibold text-slate-900">JPEG Compressor</h1>
             </div>
-            <div className="hidden sm:flex items-center space-x-4 text-sm text-slate-600">
-              <span>Fast • Secure • Free</span>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <Avatar className="w-8 h-8">
+                  <AvatarImage src={user?.profileImageUrl || undefined} />
+                  <AvatarFallback>
+                    {user?.firstName ? user.firstName[0] : user?.email?.[0] || <User className="w-4 h-4" />}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="text-sm">
+                  <div className="font-medium text-gray-900">
+                    {user?.firstName && user?.lastName 
+                      ? `${user.firstName} ${user.lastName}`
+                      : user?.email?.split('@')[0] || 'User'
+                    }
+                  </div>
+                  <div className="text-gray-500 text-xs">{user?.email || ''}</div>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => window.location.href = '/api/logout'}
+                className="text-gray-600 hover:text-gray-900"
+              >
+                <LogOut className="w-4 h-4 mr-1" />
+                Sign Out
+              </Button>
             </div>
           </div>
         </div>

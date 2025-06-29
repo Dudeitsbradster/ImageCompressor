@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a modern web application for compressing JPEG images with a focus on client-side processing for security and privacy. The application is built using a full-stack TypeScript architecture with React frontend and Express backend, though the core compression functionality runs entirely in the browser.
+This is a modern web application for compressing JPEG images with user authentication and advanced quality assessment features. The application combines client-side image processing for security and privacy with server-side user management using Replit Auth. Built with a full-stack TypeScript architecture featuring React frontend and Express backend.
 
 ## System Architecture
 
@@ -86,6 +86,13 @@ The application follows a monorepo structure with clear separation between clien
 
 ```
 Changelog:
+- June 29, 2025: User authentication system implemented with Replit Auth
+  * Clean landing page with minimalist design and clear call-to-action
+  * Secure user authentication using OpenID Connect
+  * PostgreSQL database integration for user sessions and data
+  * User profile display with avatar and account information
+  * Protected routes and secure logout functionality
+  * Professional landing page showcasing application features
 - June 29, 2025: Advanced visual quality assessment system implemented
   * Comprehensive image quality analysis with PSNR, SSIM, and MSE calculations
   * Advanced visual comparison tools with side-by-side, overlay, and difference mapping
