@@ -5,9 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { compressImage } from "@/lib/image-compression";
 import { formatFileSize, downloadFile } from "@/lib/file-utils";
-import { Combine, Trash2, Download, X, ImageIcon } from "lucide-react";
+import { Combine, Trash2, Download, X, ImageIcon, Zap, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
+import { batchProcessor } from "@/lib/batch-processor";
 
 // Image Preview Component with error handling
 function ImagePreview({ file }: { file: ImageFile }) {
@@ -107,9 +108,28 @@ export default function FilePreview({
   const handleCompressAll = async () => {
     const filesToCompress = files.filter(f => f.status === 'ready');
     
-    for (const file of filesToCompress) {
-      await handleCompressFile(file);
+    if (filesToCompress.length > 5) {
+      // Use batch processor for large batches
+      batchProcessor.addToQueue(filesToCompress, settings, 'normal');
+      toast({
+        title: "Batch processing started",
+        description: `${filesToCompress.length} files added to processing queue.`,
+      });
+    } else {
+      // Process small batches immediately
+      for (const file of filesToCompress) {
+        await handleCompressFile(file);
+      }
     }
+  };
+
+  const handleBatchProcess = () => {
+    const filesToCompress = files.filter(f => f.status === 'ready');
+    batchProcessor.addToQueue(filesToCompress, settings, 'normal');
+    toast({
+      title: "Added to batch queue",
+      description: `${filesToCompress.length} files queued for processing.`,
+    });
   };
 
   const handleDownloadFile = (file: ImageFile) => {
@@ -145,15 +165,28 @@ export default function FilePreview({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-slate-900">Uploaded Files</h3>
-        <div className="flex space-x-3">
+        <div className="flex flex-wrap gap-3">
           <Button 
             onClick={handleCompressAll}
             className="bg-primary hover:bg-blue-600 text-white"
             disabled={files.filter(f => f.status === 'ready').length === 0}
           >
             <Combine className="w-4 h-4 mr-2" />
-            Combine All
+            {files.filter(f => f.status === 'ready').length > 5 ? 'Queue All' : 'Compress All'}
           </Button>
+          
+          {files.filter(f => f.status === 'ready').length > 1 && (
+            <Button 
+              onClick={handleBatchProcess}
+              variant="outline"
+              className="border-purple-300 text-purple-700 hover:bg-purple-50"
+              disabled={files.filter(f => f.status === 'ready').length === 0}
+            >
+              <Users className="w-4 h-4 mr-2" />
+              Add to Queue
+            </Button>
+          )}
+          
           <Button 
             variant="outline"
             onClick={onClearAll}

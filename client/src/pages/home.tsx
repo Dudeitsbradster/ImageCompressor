@@ -4,7 +4,9 @@ import UploadZone from "@/components/upload-zone";
 import CompressionSettingsComponent from "@/components/compression-settings";
 import FilePreview from "@/components/file-preview";
 import BulkActions from "@/components/bulk-actions";
+import BatchQueue from "@/components/batch-queue";
 import { Combine, Shield, Zap, Wand2 } from "lucide-react";
+import { BatchProgress } from "@/lib/batch-processor";
 
 export default function Home() {
   const [files, setFiles] = useState<ImageFile[]>([]);
@@ -15,6 +17,7 @@ export default function Home() {
     sharpenFilter: false,
     noiseReduction: false
   });
+  const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(null);
 
   const addFiles = (newFiles: ImageFile[]) => {
     setFiles(prev => [...prev, ...newFiles]);
@@ -76,15 +79,21 @@ export default function Home() {
               <div className="text-sm text-slate-600">Files Uploaded</div>
             </div>
             <div className="bg-white rounded-lg p-4 border border-slate-200">
-              <div className="text-2xl font-bold text-green-600">{compressedFiles.length}</div>
+              <div className="text-2xl font-bold text-green-600">
+                {compressedFiles.length + (batchProgress?.completed || 0)}
+              </div>
               <div className="text-sm text-slate-600">Compressed</div>
             </div>
             <div className="bg-white rounded-lg p-4 border border-slate-200">
-              <div className="text-2xl font-bold text-amber-600">{totalSavingsPercentage}%</div>
+              <div className="text-2xl font-bold text-amber-600">
+                {batchProgress?.totalSavingsPercentage || totalSavingsPercentage}%
+              </div>
               <div className="text-sm text-slate-600">Average Savings</div>
             </div>
             <div className="bg-white rounded-lg p-4 border border-slate-200">
-              <div className="text-2xl font-bold text-purple-600">{Math.round(totalSavings / 1024)}KB</div>
+              <div className="text-2xl font-bold text-purple-600">
+                {Math.round((totalSavings + (batchProgress?.totalSavings || 0)) / 1024)}KB
+              </div>
               <div className="text-sm text-slate-600">Total Saved</div>
             </div>
           </div>
@@ -108,6 +117,9 @@ export default function Home() {
             onClearAll={clearAll}
           />
         )}
+
+        {/* Batch Processing Queue */}
+        <BatchQueue onProgressUpdate={setBatchProgress} />
 
         {/* Bulk Actions */}
         {compressedFiles.length > 0 && (
