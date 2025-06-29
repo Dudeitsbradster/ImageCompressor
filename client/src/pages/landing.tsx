@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import AdBanner from "@/components/ads/AdBanner";
+import AdInArticle from "@/components/ads/AdInArticle";
 import { Zap, Shield, Download, Gauge, Eye, Users } from "lucide-react";
 
 export default function Landing() {
@@ -32,6 +34,9 @@ export default function Landing() {
           </div>
         </div>
       </header>
+
+      {/* Top Banner Ad */}
+      <AdBanner slot="1234567890" className="container mx-auto px-4" />
 
       {/* Hero Section */}
       <main className="container mx-auto px-4 py-16">
@@ -99,6 +104,9 @@ export default function Landing() {
           </Card>
         </div>
 
+        {/* In-Article Ad */}
+        <AdInArticle slot="2222222222" />
+
         {/* Key Benefits */}
         <div className="bg-white rounded-2xl p-8 shadow-lg mb-16">
           <h2 className="text-3xl font-bold text-center mb-8 text-gray-900">Why Choose Our Compressor?</h2>
@@ -148,6 +156,9 @@ export default function Landing() {
             Sign In to Get Started
           </Button>
         </div>
+
+        {/* Bottom Banner Ad */}
+        <AdBanner slot="3333333333" className="mt-16" />
       </main>
 
       {/* Footer */}

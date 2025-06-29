@@ -1,74 +1,50 @@
-import { useState } from "react";
-import { ImageFile, CompressionSettings } from "@shared/schema";
-import UploadZone from "@/components/upload-zone";
-import CompressionSettingsComponent from "@/components/compression-settings";
-import FilePreview from "@/components/file-preview";
-import BulkActions from "@/components/bulk-actions";
-import BatchQueue from "@/components/batch-queue";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { Combine, Shield, Zap, Wand2, LogOut, User } from "lucide-react";
-import { BatchProgress } from "@/lib/batch-processor";
+import React, { useState, useCallback } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import { User, Shield, Zap, Wand2, LogOut } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import UploadZone from '@/components/upload-zone';
+import FilePreview from '@/components/file-preview';
+import CompressionSettingsComponent from '@/components/compression-settings';
+import BatchQueue from '@/components/batch-queue';
+import BulkActions from '@/components/bulk-actions';
+import AdBanner from '@/components/ads/AdBanner';
+import AdSidebar from '@/components/ads/AdSidebar';
+import AdInArticle from '@/components/ads/AdInArticle';
+import type { ImageFile, CompressionSettings, BatchProgress } from '@shared/schema';
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [files, setFiles] = useState<ImageFile[]>([]);
   const [settings, setSettings] = useState<CompressionSettings>({
-    quality: 80,
+    quality: 85,
     mode: 'balanced',
     webOptimized: true,
     sharpenFilter: false,
-    noiseReduction: false
+    noiseReduction: false,
   });
   const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(null);
 
-  const addFiles = (newFiles: ImageFile[]) => {
+  const addFiles = useCallback((newFiles: ImageFile[]) => {
     setFiles(prev => [...prev, ...newFiles]);
-  };
+  }, []);
 
-  const updateFile = (id: string, updates: Partial<ImageFile>) => {
+  const updateFile = useCallback((id: string, updates: Partial<ImageFile>) => {
     setFiles(prev => prev.map(file => 
       file.id === id ? { ...file, ...updates } : file
     ));
-  };
+  }, []);
 
-  const removeFile = (id: string) => {
+  const removeFile = useCallback((id: string) => {
     setFiles(prev => prev.filter(file => file.id !== id));
-  };
+  }, []);
 
-  const clearAll = () => {
+  const clearAll = useCallback(() => {
     setFiles([]);
-  };
-
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("POST", "/api/auth/logout");
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      toast({
-        title: "Signed out",
-        description: "You have been signed out successfully.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Sign out failed",
-        description: error.message || "Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleLogout = () => {
-    logoutMutation.mutate();
-  };
+    setBatchProgress(null);
+  }, []);
 
   const compressedFiles = files.filter(file => file.status === 'compressed');
   const totalSavings = compressedFiles.reduce((sum, file) => sum + (file.savings || 0), 0);
@@ -76,33 +52,40 @@ export default function Home() {
     ? Math.round(compressedFiles.reduce((sum, file) => sum + (file.savingsPercentage || 0), 0) / compressedFiles.length)
     : 0;
 
+  const handleLogout = () => {
+    window.location.href = '/api/logout';
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-slate-200">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <Combine className="text-white w-4 h-4" />
-              </div>
-              <h1 className="text-xl font-semibold text-slate-900">JPEG Compressor</h1>
+            <div className="flex items-center">
+              <h1 className="text-xl font-bold text-slate-900">JPEG Compressor</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Avatar className="w-8 h-8">
+              <div className="flex items-center space-x-3">
+                <Avatar className="h-8 w-8">
                   <AvatarFallback>
-                    {user?.firstName ? user.firstName[0] : user?.email?.[0] || <User className="w-4 h-4" />}
+                    <User className="h-4 w-4" />
                   </AvatarFallback>
                 </Avatar>
-                <div className="text-sm">
-                  <div className="font-medium text-gray-900">
-                    {user?.firstName && user?.lastName 
-                      ? `${user.firstName} ${user.lastName}`
-                      : user?.email?.split('@')[0] || 'User'
-                    }
-                  </div>
-                  <div className="text-gray-500 text-xs">{user?.email || ''}</div>
+                <div className="hidden sm:block">
+                  <div className="text-sm font-medium text-slate-900">Welcome back!</div>
+                  <div className="text-xs text-slate-500">Ready to compress images</div>
                 </div>
               </div>
               <Button
@@ -119,101 +102,142 @@ export default function Home() {
         </div>
       </header>
 
+      {/* Top Banner Ad */}
+      <AdBanner slot="4444444444" className="max-w-7xl mx-auto px-4" />
+
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Upload Section */}
-        <div className="mb-8">
-          <div className="text-center mb-6">
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">Combine Your JPEG Images</h2>
-            <p className="text-slate-600 text-lg">Reduce file size without losing quality. Upload multiple images and compress them instantly.</p>
-          </div>
-
-          <UploadZone onFilesAdded={addFiles} />
-
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
-            <div className="bg-white rounded-lg p-4 border border-slate-200">
-              <div className="text-2xl font-bold text-blue-600">{files.length}</div>
-              <div className="text-sm text-slate-600">Files Uploaded</div>
-            </div>
-            <div className="bg-white rounded-lg p-4 border border-slate-200">
-              <div className="text-2xl font-bold text-green-600">
-                {compressedFiles.length + (batchProgress?.completed || 0)}
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Main Content Area */}
+          <div className="flex-1">
+            {/* Upload Section */}
+            <div className="mb-8">
+              <div className="text-center mb-6">
+                <h2 className="text-3xl font-bold text-slate-900 mb-2">Compress Your JPEG Images</h2>
+                <p className="text-slate-600 text-lg">Reduce file size without losing quality. Upload multiple images and compress them instantly.</p>
               </div>
-              <div className="text-sm text-slate-600">Compressed</div>
-            </div>
-            <div className="bg-white rounded-lg p-4 border border-slate-200">
-              <div className="text-2xl font-bold text-amber-600">
-                {batchProgress?.totalSavingsPercentage || totalSavingsPercentage}%
+
+              <UploadZone onFilesAdded={addFiles} />
+
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+                <div className="bg-white rounded-lg p-4 border border-slate-200">
+                  <div className="text-2xl font-bold text-blue-600">{files.length}</div>
+                  <div className="text-sm text-slate-600">Files Uploaded</div>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-slate-200">
+                  <div className="text-2xl font-bold text-green-600">
+                    {compressedFiles.length + (batchProgress?.completed || 0)}
+                  </div>
+                  <div className="text-sm text-slate-600">Compressed</div>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-slate-200">
+                  <div className="text-2xl font-bold text-amber-600">
+                    {batchProgress?.totalSavingsPercentage || totalSavingsPercentage}%
+                  </div>
+                  <div className="text-sm text-slate-600">Average Savings</div>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-slate-200">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {Math.round((totalSavings + (batchProgress?.totalSavings || 0)) / 1024)}KB
+                  </div>
+                  <div className="text-sm text-slate-600">Total Saved</div>
+                </div>
               </div>
-              <div className="text-sm text-slate-600">Average Savings</div>
             </div>
-            <div className="bg-white rounded-lg p-4 border border-slate-200">
-              <div className="text-2xl font-bold text-purple-600">
-                {Math.round((totalSavings + (batchProgress?.totalSavings || 0)) / 1024)}KB
+
+            {/* Compression Settings */}
+            {files.length > 0 && (
+              <CompressionSettingsComponent 
+                settings={settings} 
+                onChange={setSettings} 
+              />
+            )}
+
+            {/* In-Article Ad */}
+            {files.length > 0 && <AdInArticle slot="5555555555" />}
+
+            {/* File Preview Grid */}
+            {files.length > 0 && (
+              <FilePreview 
+                files={files}
+                settings={settings}
+                onUpdateFile={updateFile}
+                onRemoveFile={removeFile}
+                onClearAll={clearAll}
+              />
+            )}
+
+            {/* Batch Processing Queue */}
+            <BatchQueue onProgressUpdate={setBatchProgress} />
+
+            {/* Bulk Actions */}
+            {compressedFiles.length > 0 && (
+              <BulkActions 
+                filesProcessed={compressedFiles.length}
+                totalSavings={totalSavings}
+                totalSavingsPercentage={totalSavingsPercentage}
+                compressedFiles={compressedFiles}
+                onStartNew={clearAll}
+              />
+            )}
+
+            {/* Feature Info */}
+            <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="text-center p-6">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Shield className="text-primary w-5 h-5" />
+                </div>
+                <h3 className="font-semibold text-slate-900 mb-2">100% Secure</h3>
+                <p className="text-slate-600 text-sm">All processing happens in your browser. Your images never leave your device.</p>
               </div>
-              <div className="text-sm text-slate-600">Total Saved</div>
+              <div className="text-center p-6">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Zap className="text-primary w-5 h-5" />
+                </div>
+                <h3 className="font-semibold text-slate-900 mb-2">Lightning Fast</h3>
+                <p className="text-slate-600 text-sm">Client-side compression for instant results without waiting for uploads.</p>
+              </div>
+              <div className="text-center p-6">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Wand2 className="text-primary w-5 h-5" />
+                </div>
+                <h3 className="font-semibold text-slate-900 mb-2">Smart Compression</h3>
+                <p className="text-slate-600 text-sm">Advanced algorithms maintain image quality while maximizing file size reduction.</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Compression Settings */}
-        {files.length > 0 && (
-          <CompressionSettingsComponent 
-            settings={settings} 
-            onChange={setSettings} 
-          />
-        )}
+          {/* Sidebar with Ads */}
+          <div className="lg:w-80">
+            <div className="sticky top-8 space-y-6">
+              <AdSidebar slot="6666666666" />
+              
+              <div className="bg-white rounded-lg p-6 shadow-sm border">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Why Choose Our Compressor?</h3>
+                <ul className="space-y-3 text-sm text-gray-600">
+                  <li className="flex items-start">
+                    <Shield className="w-4 h-4 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
+                    <span>100% private - files never leave your device</span>
+                  </li>
+                  <li className="flex items-start">
+                    <Zap className="w-4 h-4 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
+                    <span>Instant processing with advanced algorithms</span>
+                  </li>
+                  <li className="flex items-start">
+                    <Wand2 className="w-4 h-4 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
+                    <span>Professional quality assessment tools</span>
+                  </li>
+                </ul>
+              </div>
 
-        {/* File Preview Grid */}
-        {files.length > 0 && (
-          <FilePreview 
-            files={files}
-            settings={settings}
-            onUpdateFile={updateFile}
-            onRemoveFile={removeFile}
-            onClearAll={clearAll}
-          />
-        )}
-
-        {/* Batch Processing Queue */}
-        <BatchQueue onProgressUpdate={setBatchProgress} />
-
-        {/* Bulk Actions */}
-        {compressedFiles.length > 0 && (
-          <BulkActions 
-            filesProcessed={compressedFiles.length}
-            totalSavings={totalSavings}
-            totalSavingsPercentage={totalSavingsPercentage}
-            compressedFiles={compressedFiles}
-            onStartNew={clearAll}
-          />
-        )}
-
-        {/* Feature Info */}
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="text-center p-6">
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Shield className="text-primary w-5 h-5" />
+              <AdSidebar slot="7777777777" />
             </div>
-            <h3 className="font-semibold text-slate-900 mb-2">100% Secure</h3>
-            <p className="text-slate-600 text-sm">All processing happens in your browser. Your images never leave your device.</p>
-          </div>
-          <div className="text-center p-6">
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Zap className="text-primary w-5 h-5" />
-            </div>
-            <h3 className="font-semibold text-slate-900 mb-2">Lightning Fast</h3>
-            <p className="text-slate-600 text-sm">Client-side compression for instant results without waiting for uploads.</p>
-          </div>
-          <div className="text-center p-6">
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Wand2 className="text-primary w-5 h-5" />
-            </div>
-            <h3 className="font-semibold text-slate-900 mb-2">Smart Compression</h3>
-            <p className="text-slate-600 text-sm">Advanced algorithms maintain image quality while maximizing file size reduction.</p>
           </div>
         </div>
       </main>
+
+      {/* Bottom Banner Ad */}
+      <AdBanner slot="8888888888" className="max-w-7xl mx-auto px-4 mb-8" />
 
       {/* Footer */}
       <footer className="bg-white border-t border-slate-200 mt-16">
