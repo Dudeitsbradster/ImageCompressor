@@ -10,7 +10,10 @@ export default function Home() {
   const [files, setFiles] = useState<ImageFile[]>([]);
   const [settings, setSettings] = useState<CompressionSettings>({
     quality: 80,
-    mode: 'balanced'
+    mode: 'balanced',
+    webOptimized: true,
+    sharpenFilter: false,
+    noiseReduction: false
   });
 
   const addFiles = (newFiles: ImageFile[]) => {

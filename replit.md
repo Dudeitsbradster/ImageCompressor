@@ -82,11 +82,25 @@ The application follows a monorepo structure with clear separation between clien
 - **Build Target**: Node.js ESM modules
 - **Platform**: Optimized for Replit deployment with cartographer integration
 
-## Changelog
+## Recent Changes
 
 ```
 Changelog:
-- June 29, 2025. Initial setup
+- June 29, 2025: Advanced JPEG compression technology implemented
+  * Enhanced algorithm with unsharp mask sharpening
+  * Bilateral noise reduction filtering
+  * Web optimization with contrast enhancement
+  * Smart dimension calculation with aspect ratio preservation
+  * Advanced quality calculation based on image characteristics
+  * Configurable compression modes: aggressive, balanced, gentle
+  * Real-time compression progress tracking
+- June 29, 2025: Enhanced upload system
+  * Improved drag-and-drop with visual feedback
+  * Comprehensive file validation and error handling
+  * Support for multiple file formats and size limits
+  * Better image preview functionality
+  * ZIP download functionality with JSZip integration
+- June 29, 2025: Initial setup
 ```
 
 ## User Preferences

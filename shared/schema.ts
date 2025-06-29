@@ -36,4 +36,7 @@ export interface ImageFile {
 export interface CompressionSettings {
   quality: number;
   mode: 'balanced' | 'aggressive' | 'gentle';
+  webOptimized?: boolean;
+  sharpenFilter?: boolean;
+  noiseReduction?: boolean;
 }
