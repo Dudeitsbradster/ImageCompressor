@@ -8,11 +8,16 @@ import BatchQueue from "@/components/batch-queue";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Combine, Shield, Zap, Wand2, LogOut, User } from "lucide-react";
 import { BatchProgress } from "@/lib/batch-processor";
 
 export default function Home() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [files, setFiles] = useState<ImageFile[]>([]);
   const [settings, setSettings] = useState<CompressionSettings>({
     quality: 80,
@@ -41,6 +46,30 @@ export default function Home() {
     setFiles([]);
   };
 
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/auth/logout");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({
+        title: "Signed out",
+        description: "You have been signed out successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Sign out failed",
+        description: error.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
+
   const compressedFiles = files.filter(file => file.status === 'compressed');
   const totalSavings = compressedFiles.reduce((sum, file) => sum + (file.savings || 0), 0);
   const totalSavingsPercentage = compressedFiles.length > 0 
@@ -62,7 +91,6 @@ export default function Home() {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <Avatar className="w-8 h-8">
-                  <AvatarImage src={user?.profileImageUrl || undefined} />
                   <AvatarFallback>
                     {user?.firstName ? user.firstName[0] : user?.email?.[0] || <User className="w-4 h-4" />}
                   </AvatarFallback>
@@ -80,7 +108,7 @@ export default function Home() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => window.location.href = '/api/logout'}
+                onClick={handleLogout}
                 className="text-gray-600 hover:text-gray-900"
               >
                 <LogOut className="w-4 h-4 mr-1" />

@@ -15,12 +15,21 @@ export default function Landing() {
             </div>
             <span className="text-xl font-bold text-gray-900">JPEG Compressor</span>
           </div>
-          <Button 
-            onClick={() => window.location.href = '/api/login'}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            Sign In
-          </Button>
+          <div className="flex items-center space-x-3">
+            <Button 
+              onClick={() => window.location.href = '/login'}
+              variant="ghost"
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Sign In
+            </Button>
+            <Button 
+              onClick={() => window.location.href = '/register'}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Get Started
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -40,7 +49,7 @@ export default function Landing() {
             Reduce file sizes while maintaining professional image quality.
           </p>
           <Button 
-            onClick={() => window.location.href = '/api/login'}
+            onClick={() => window.location.href = '/register'}
             size="lg"
             className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg"
           >
