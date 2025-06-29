@@ -1,0 +1,96 @@
+# JPEG Compressor Application
+
+## Overview
+
+This is a modern web application for compressing JPEG images with a focus on client-side processing for security and privacy. The application is built using a full-stack TypeScript architecture with React frontend and Express backend, though the core compression functionality runs entirely in the browser.
+
+## System Architecture
+
+The application follows a monorepo structure with clear separation between client, server, and shared code:
+
+- **Frontend**: React with TypeScript, styled using Tailwind CSS and shadcn/ui components
+- **Backend**: Express.js with TypeScript (minimal API surface)
+- **Database**: PostgreSQL with Drizzle ORM (configured but not actively used for core functionality)
+- **Shared**: Common TypeScript types and schemas using Zod validation
+
+## Key Components
+
+### Frontend Architecture
+- **Framework**: React 18 with TypeScript
+- **Styling**: Tailwind CSS with custom design system using CSS variables
+- **UI Components**: shadcn/ui component library built on Radix UI primitives
+- **State Management**: React state with TanStack Query for server state
+- **Routing**: Wouter for lightweight client-side routing
+- **File Handling**: Native HTML5 File API with drag-and-drop support using react-dropzone
+
+### Backend Architecture
+- **Server**: Express.js with TypeScript
+- **Development**: Vite dev server integration for hot module replacement
+- **Database**: Drizzle ORM with PostgreSQL (using Neon serverless)
+- **Session Management**: PostgreSQL session store (configured but minimal usage)
+
+### Core Features
+1. **Client-side Image Compression**: All image processing happens in the browser using HTML5 Canvas API
+2. **Drag-and-Drop Upload**: Intuitive file upload with validation
+3. **Real-time Progress**: Visual feedback during compression process
+4. **Bulk Operations**: Process multiple images simultaneously
+5. **Download Management**: Individual file downloads and bulk ZIP creation
+
+## Data Flow
+
+1. **File Upload**: Users drag/drop or select JPEG files (validated client-side)
+2. **Compression Settings**: Users configure quality and compression mode
+3. **Client-side Processing**: Images are compressed using Canvas API with Web Workers for performance
+4. **Progress Tracking**: Real-time updates during compression
+5. **Download Options**: Individual downloads or bulk ZIP creation
+6. **No Server Storage**: All files remain client-side for privacy
+
+## External Dependencies
+
+### Core Dependencies
+- **@neondatabase/serverless**: PostgreSQL serverless connection
+- **drizzle-orm**: Type-safe database ORM
+- **@tanstack/react-query**: Server state management
+- **react-dropzone**: File upload handling
+- **wouter**: Lightweight routing
+
+### UI Dependencies
+- **@radix-ui/***: Comprehensive set of accessible UI primitives
+- **tailwindcss**: Utility-first CSS framework
+- **class-variance-authority**: Component variant management
+- **lucide-react**: Icon library
+
+### Development Dependencies
+- **vite**: Build tool and dev server
+- **tsx**: TypeScript execution for Node.js
+- **esbuild**: Fast JavaScript bundler for production builds
+
+## Deployment Strategy
+
+### Development
+- **Frontend**: Vite dev server with HMR
+- **Backend**: tsx for TypeScript execution with file watching
+- **Database**: Drizzle kit for schema management and migrations
+
+### Production Build
+- **Frontend**: Vite production build with optimization
+- **Backend**: esbuild bundling for Node.js deployment
+- **Static Assets**: Served from Express with proper caching headers
+
+### Environment Configuration
+- **Database**: Requires `DATABASE_URL` environment variable
+- **Build Target**: Node.js ESM modules
+- **Platform**: Optimized for Replit deployment with cartographer integration
+
+## Changelog
+
+```
+Changelog:
+- June 29, 2025. Initial setup
+```
+
+## User Preferences
+
+```
+Preferred communication style: Simple, everyday language.
+```
