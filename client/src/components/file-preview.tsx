@@ -5,8 +5,48 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { compressImage } from "@/lib/image-compression";
 import { formatFileSize, downloadFile } from "@/lib/file-utils";
-import { Combine, Trash2, Download, X } from "lucide-react";
+import { Combine, Trash2, Download, X, ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
+
+// Image Preview Component with error handling
+function ImagePreview({ file }: { file: ImageFile }) {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    if (file.file) {
+      const url = URL.createObjectURL(file.file);
+      setImageUrl(url);
+      
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    }
+  }, [file.file]);
+
+  const handleImageError = () => {
+    setHasError(true);
+  };
+
+  if (hasError || !imageUrl) {
+    return (
+      <div className="w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center">
+        <ImageIcon className="w-6 h-6 text-slate-400" />
+      </div>
+    );
+  }
+
+  return (
+    <img 
+      src={imageUrl}
+      alt={`Preview of ${file.name}`}
+      className="w-16 h-16 object-cover rounded-lg border border-slate-200"
+      onError={handleImageError}
+      loading="lazy"
+    />
+  );
+}
 
 interface FilePreviewProps {
   files: ImageFile[];
@@ -75,6 +115,16 @@ export default function FilePreview({
   const handleDownloadFile = (file: ImageFile) => {
     if (file.compressedBlob) {
       downloadFile(file.compressedBlob, file.name);
+      toast({
+        title: "Download started",
+        description: `${file.name} is being downloaded.`,
+      });
+    } else {
+      toast({
+        title: "No compressed file available",
+        description: "Please compress the image first before downloading.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -120,11 +170,7 @@ export default function FilePreview({
           <div className="flex items-start space-x-4">
             {/* Image Preview */}
             <div className="flex-shrink-0">
-              <img 
-                src={URL.createObjectURL(file.file)} 
-                alt={`Preview of ${file.name}`}
-                className="w-16 h-16 object-cover rounded-lg"
-              />
+              <ImagePreview file={file} />
             </div>
 
             {/* File Info */}

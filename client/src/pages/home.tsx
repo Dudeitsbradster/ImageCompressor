@@ -67,9 +67,23 @@ export default function Home() {
 
           <UploadZone onFilesAdded={addFiles} />
 
-          <div className="mt-4 flex items-center justify-center text-sm text-slate-500">
-            <span className="mr-2">ℹ️</span>
-            <span>Supports JPEG files only • Maximum 50 files • Up to 10MB each</span>
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+            <div className="bg-white rounded-lg p-4 border border-slate-200">
+              <div className="text-2xl font-bold text-blue-600">{files.length}</div>
+              <div className="text-sm text-slate-600">Files Uploaded</div>
+            </div>
+            <div className="bg-white rounded-lg p-4 border border-slate-200">
+              <div className="text-2xl font-bold text-green-600">{compressedFiles.length}</div>
+              <div className="text-sm text-slate-600">Compressed</div>
+            </div>
+            <div className="bg-white rounded-lg p-4 border border-slate-200">
+              <div className="text-2xl font-bold text-amber-600">{totalSavingsPercentage}%</div>
+              <div className="text-sm text-slate-600">Average Savings</div>
+            </div>
+            <div className="bg-white rounded-lg p-4 border border-slate-200">
+              <div className="text-2xl font-bold text-purple-600">{Math.round(totalSavings / 1024)}KB</div>
+              <div className="text-sm text-slate-600">Total Saved</div>
+            </div>
           </div>
         </div>
 
