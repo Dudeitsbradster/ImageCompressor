@@ -86,6 +86,11 @@ The application follows a monorepo structure with clear separation between clien
 
 ```
 Changelog:
+- June 29, 2025: Fixed logout functionality
+  * Updated frontend to use correct POST /api/auth/logout endpoint
+  * Enhanced server logout to properly destroy sessions and clear cookies
+  * Resolved conflicting logout endpoints between custom auth and Replit Auth
+  * Ensured secure session termination and proper redirect behavior
 - June 29, 2025: Stripe subscription system implemented for premium features
   * Complete Stripe integration with subscription management
   * Premium plan offering unlimited compressions ($9.99/month, $99.99/year)
